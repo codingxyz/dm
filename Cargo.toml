@@ -6,4 +6,7 @@ authors = ["codingxyz <codingxyz@gmail.com>"]
 [dependencies]
 docopt = "0.6.*"
 rustc-serialize = "0.3"
+yaml-rust = "*"
+libc = "*"
+errno = "0.1.2"
 

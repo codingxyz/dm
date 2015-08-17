@@ -67,8 +67,28 @@ impl Executor {
         self
     }
 
-    #[cfg(target_os = "linux")]
     pub fn run(&mut self) -> Result<u32, Error> {
+        if let Err(e) = self.fork_exec() {
+            return Err(e);
+        }
+
+        if let Some(ref pid_path) = self.pid_path {
+            match File::create(pid_path) {
+                Ok(ref mut file) => {
+                    if let Err(e) = file.write_fmt(format_args!("{}", self.pid)) {
+                        panic!("write pid fail: {}", e);
+                    }
+                },
+                Err(e) => {
+                    panic!("open pid file fail: {}", e);
+                }
+            }
+        }
+        Ok(self.pid)
+    }
+
+    #[cfg(target_os = "linux")]
+    fn fork_exec(&mut self) -> Result<(), Error> {
         // converting CString to ensure 0-terminated
         let mut tmp_argv: Vec<CString> = Vec::with_capacity(self.cmd.len());
         tmp_argv.extend(self.cmd.iter().map(|c| CString::new(c.as_bytes()).ok().unwrap()));
@@ -115,19 +135,8 @@ impl Executor {
                 }
             }
         }
-        if let Some(ref pid_path) = self.pid_path {
-            match File::create(pid_path) {
-                Ok(ref mut file) => {
-                    if let Err(e) = file.write_fmt(format_args!("{}", pid)) {
-                        panic!("write pid fail: {}", e);
-                    }
-                },
-                Err(e) => {
-                    panic!("open pid file fail: {}", e);
-                }
-            }
-        }
+
         self.pid = pid as u32;
-        Ok(pid as u32)
+        Ok(())
     }
 }
